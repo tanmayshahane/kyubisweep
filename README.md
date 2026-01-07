@@ -21,7 +21,7 @@ A lightweight, cross-platform CLI tool that scans your filesystem to detect expo
 
 ## 🚀 Quick Start
 
-### Option 1: Download Pre-built Binary
+### Option 1: Download Pre-built Binary (**Coming soon**)
 
 ```bash
 # macOS Apple Silicon (M1/M2/M3)
@@ -139,7 +139,6 @@ kyubisweep/
 │   │   └── manager.go        # Secure file relocation
 │   └── common/
 │       └── colors.go         # Shared ANSI color utilities
-├── micro-tutorials/          # Go learning resources
 ├── reports/                  # Generated scan reports
 ├── build/                    # Cross-compiled binaries
 ├── go.mod                    # Go module definition
