@@ -7,7 +7,7 @@ import (
 
 // =============================================================================
 // TEST: CalculateEntropy
-// Uses Table-Driven Tests - the idiomatic Go testing pattern
+// Uses Table-Driven Tests - the idiomatic Go testing patterns
 // =============================================================================
 
 func TestCalculateEntropy(t *testing.T) {
