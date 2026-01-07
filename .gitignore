@@ -1,0 +1,33 @@
+# Binaries
+kyubisweep
+build/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test files
+test_secrets.txt
+*.test
+
+# Reports (generated output)
+reports/
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Go specific
+vendor/
+go.sum
+
+# Temporary files
+*.tmp
+*.log
