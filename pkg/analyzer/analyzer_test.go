@@ -139,7 +139,7 @@ func TestSecretPatternMatching(t *testing.T) {
 		},
 		{
 			name:        "MongoDB connection string",
-			input:       `MONGO_URI="mongodb://admin:secret@cluster.mongodb.net/db"`,
+			input:       `MONGO_URI="mongodb://testuser:testpass@cluster.mongodb.net/db"`,
 			shouldMatch: true,
 			patternName: "MongoDB Connection String",
 		},
