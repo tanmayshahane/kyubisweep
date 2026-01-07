@@ -106,6 +106,54 @@ EXAMPLES:
 ```
 
 ---
+```mermaid
+graph TD
+    subgraph "Initialization (Main Goroutine)"
+        A[Start CLI] --> B{Parse Flags};
+        B -->|--path| C[Init Walker];
+        B -->|--move-to| D[Init Quarantine Mgr];
+        C --> E[Create Jobs Channel];
+        E --> F[Create Results Channel];
+    end
+
+    subgraph "Producer (Goroutine 1)"
+        G[Walker] -->|Finds Files| E;
+        style G fill:#f9f,stroke:#333,stroke-width:2px
+        style E fill:#ccf,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5
+    end
+
+    subgraph "Worker Pool (Goroutines 2...N)"
+        E -->|Read File Path| H[Worker 1];
+        E -->|Read File Path| I[Worker 2];
+        E -->|Read File Path| J[Worker N];
+
+        H -->|Read Content| K{Analyzer};
+        I -->|Read Content| K{Analyzer};
+        J -->|Read Content| K{Analyzer};
+
+        K -- No Secret --> L((Discard));
+        K -- Secret Found --> M[Send Finding];
+
+        M --> F;
+        style K fill:#ff9,stroke:#333,stroke-width:2px
+    end
+
+    subgraph "Consumer & Wrap up (Main Goroutine)"
+        F -->|Collect Findings| N[Reporter / Table UI];
+        style F fill:#ccf,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5
+        N --> O{Quarantine Requested?};
+        O -- Yes --> P[Move Files to Vault];
+        O -- No --> Q[Exit];
+        P --> Q;
+    end
+
+    %% Add a WaitGroup visual helper
+    H -.-> WG[sync.WaitGroup];
+    I -.-> WG;
+    J -.-> WG;
+    WG -.->|All Done| F;
+```
+---
 
 ## 🔐 What It Detects
 

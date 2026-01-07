@@ -54,7 +54,7 @@ func main() {
 	startTime := time.Now()
 
 	if !*quiet {
-		fmt.Println(bannerArt)
+		fmt.Print(bannerArt)
 	}
 
 	absPath, err := filepath.Abs(*scanPath)
@@ -152,7 +152,7 @@ func handleQuarantine(findings []analyzer.Finding, targetDir string) {
 }
 
 func printHelp() {
-	fmt.Println(bannerArt)
+	fmt.Print(bannerArt)
 	fmt.Println("USAGE:")
 	fmt.Println("  kyubisweep [OPTIONS]")
 	fmt.Println("")
