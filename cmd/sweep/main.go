@@ -17,6 +17,10 @@ import (
 	"github.com/tanmayshahane/kyubisweep/pkg/scanner"
 )
 
+// Version of KyubiSweep
+var Version = "v0.1.0"
+
+
 const (
 	numWorkers = 10
 
@@ -44,7 +48,17 @@ func main() {
 	quiet := flag.Bool("quiet", false, "Minimal output, just summary stats")
 	moveTo := flag.String("move-to", "", "Quarantine: Move files with secrets to this directory")
 
+	// ---- NEW VERSION FLAG ----
+	versionFlag := flag.Bool("version", false, "Print version and exit")
+	
+
 	flag.Parse()
+
+	// Check version flag first
+	if *versionFlag {
+		fmt.Println("KyubiSweep", Version)
+		os.Exit(0)
+	}
 
 	if *showHelp {
 		printHelp()
