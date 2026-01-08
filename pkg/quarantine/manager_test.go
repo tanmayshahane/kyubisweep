@@ -3,6 +3,7 @@ package quarantine
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -31,6 +32,11 @@ func TestQuarantineFiles(t *testing.T) {
 	if _, err := os.Stat(testFilePath); os.IsNotExist(err) {
 		t.Fatal("Test file should exist in source before quarantine")
 	}
+
+	// Mock user input: "y" to delete original
+	oldInput := inputReader
+	inputReader = strings.NewReader("y\n")
+	defer func() { inputReader = oldInput }()
 
 	// Perform the quarantine
 	results, err := QuarantineFiles([]string{testFilePath}, targetDir)
@@ -87,6 +93,11 @@ func TestQuarantineFilesMultiple(t *testing.T) {
 		filePaths = append(filePaths, path)
 	}
 
+	// Mock user input: "y" for all files
+	oldInput := inputReader
+	inputReader = strings.NewReader("y\ny\ny\n")
+	defer func() { inputReader = oldInput }()
+
 	// Perform the quarantine
 	results, err := QuarantineFiles(filePaths, targetDir)
 	if err != nil {
@@ -142,6 +153,11 @@ func TestQuarantineFilesCollision(t *testing.T) {
 		t.Fatalf("Failed to create existing target file: %v", err)
 	}
 
+	// Mock user input: "y"
+	oldInput := inputReader
+	inputReader = strings.NewReader("y\n")
+	defer func() { inputReader = oldInput }()
+
 	// Perform the quarantine
 	results, err := QuarantineFiles([]string{sourcePath}, targetDir)
 	if err != nil {
@@ -184,6 +200,11 @@ func TestQuarantineCreatesTargetDir(t *testing.T) {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
+	// Mock user input: "y"
+	oldInput := inputReader
+	inputReader = strings.NewReader("y\n")
+	defer func() { inputReader = oldInput }()
+
 	// Perform quarantine - should create the directory
 	results, err := QuarantineFiles([]string{sourcePath}, targetDir)
 	if err != nil {
@@ -211,6 +232,11 @@ func TestQuarantineDuplicatePaths(t *testing.T) {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
+	// Mock user input: "y"
+	oldInput := inputReader
+	inputReader = strings.NewReader("y\n")
+	defer func() { inputReader = oldInput }()
+
 	// Pass the SAME path twice (simulating duplicate findings)
 	results, err := QuarantineFiles([]string{sourcePath, sourcePath}, targetDir)
 	if err != nil {
@@ -226,6 +252,11 @@ func TestQuarantineDuplicatePaths(t *testing.T) {
 func TestQuarantineNonExistentFile(t *testing.T) {
 	targetDir := t.TempDir()
 
+	// Mock user input: "y"
+	oldInput := inputReader
+	inputReader = strings.NewReader("y\n")
+	defer func() { inputReader = oldInput }()
+
 	// Try to quarantine a file that doesn't exist
 	results, err := QuarantineFiles([]string{"/nonexistent/file.txt"}, targetDir)
 	if err != nil {
@@ -239,5 +270,42 @@ func TestQuarantineNonExistentFile(t *testing.T) {
 
 	if results[0].Success {
 		t.Error("Moving non-existent file should fail")
+	}
+}
+
+func TestQuarantineFilesKeepOriginal(t *testing.T) {
+	sourceDir := t.TempDir()
+	targetDir := t.TempDir()
+
+	testFileName := "keep_me.txt"
+	testFilePath := filepath.Join(sourceDir, testFileName)
+	err := os.WriteFile(testFilePath, []byte("sensitive data"), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create test file: %v", err)
+	}
+
+	// Mock user input: "n" to keep original
+	oldInput := inputReader
+	inputReader = strings.NewReader("n\n")
+	defer func() { inputReader = oldInput }()
+
+	results, err := QuarantineFiles([]string{testFilePath}, targetDir)
+	if err != nil {
+		t.Fatalf("QuarantineFiles failed: %v", err)
+	}
+
+	if !results[0].Success {
+		t.Errorf("Quarantine should succeed even if original is kept")
+	}
+
+	// ASSERT: File should STILL exist in source
+	if _, err := os.Stat(testFilePath); os.IsNotExist(err) {
+		t.Error("Original file should STILL exist in source because user chose 'n'")
+	}
+
+	// ASSERT: File should ALSO exist in target
+	expectedTargetPath := filepath.Join(targetDir, testFileName)
+	if _, err := os.Stat(expectedTargetPath); os.IsNotExist(err) {
+		t.Error("File should have been copied to target")
 	}
 }

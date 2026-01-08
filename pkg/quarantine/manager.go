@@ -14,6 +14,9 @@ import (
 	"github.com/tanmayshahane/kyubisweep/pkg/common"
 )
 
+// For testing purposes
+var inputReader io.Reader = os.Stdin
+
 // MoveResult represents the outcome of a file move operation
 type MoveResult struct {
 	OriginalPath string
@@ -22,10 +25,9 @@ type MoveResult struct {
 	Error        error
 }
 
-// QuarantineFiles moves files containing secrets to a secure target directory.
+// QuarantineFiles copies files containing secrets to a secure target directory.
 // It creates the target directory if it doesn't exist and handles naming collisions.
-//
-// IMPORTANT: This MOVES files (cut/paste), not copies. Original files are removed.
+// It then prompts the user whether they want to delete the original source file.
 func QuarantineFiles(filePaths []string, targetDir string) ([]MoveResult, error) {
 	// Create target directory if it doesn't exist
 	if err := os.MkdirAll(targetDir, 0700); err != nil { // 0700 = owner-only access
@@ -36,6 +38,8 @@ func QuarantineFiles(filePaths []string, targetDir string) ([]MoveResult, error)
 
 	// Track files we've already moved to avoid duplicates
 	movedFiles := make(map[string]bool)
+
+	reader := bufio.NewReader(inputReader)
 
 	for _, srcPath := range filePaths {
 		// Skip if we already processed this file
@@ -53,14 +57,32 @@ func QuarantineFiles(filePaths []string, targetDir string) ([]MoveResult, error)
 		targetPath := filepath.Join(targetDir, filename)
 		targetPath = resolveCollision(targetPath)
 
-		// Attempt to move the file
-		err := moveFile(srcPath, targetPath)
+		// Attempt to copy the file
+		err := copyFile(srcPath, targetPath)
 		if err != nil {
 			result.Success = false
 			result.Error = err
 		} else {
-			result.Success = true
-			result.NewPath = targetPath
+			fmt.Printf("  %s File securely copied to %s\n", common.Green("✅"), targetPath)
+			fmt.Printf("  Delete original file at %s? (y/N): ", srcPath)
+
+			input, _ := reader.ReadString('\n')
+			input = strings.TrimSpace(strings.ToLower(input))
+
+			if input == "y" {
+				err = os.Remove(srcPath)
+				if err != nil {
+					result.Success = false
+					result.Error = fmt.Errorf("copied successfully but failed to delete original: %w", err)
+				} else {
+					result.Success = true
+					result.NewPath = targetPath
+				}
+			} else {
+				fmt.Println("  Skipped: original file kept.")
+				result.Success = true
+				result.NewPath = targetPath
+			}
 		}
 
 		results = append(results, result)
@@ -86,24 +108,8 @@ func resolveCollision(targetPath string) string {
 	return filepath.Join(dir, newName)
 }
 
-// moveFile moves a file from src to dst.
-// It first tries os.Rename (fast, same filesystem).
-// If that fails (cross-filesystem), it falls back to copy+delete.
-func moveFile(src, dst string) error {
-	// Try the fast path first: os.Rename
-	err := os.Rename(src, dst)
-	if err == nil {
-		return nil // Success!
-	}
-
-	// os.Rename failed - likely cross-filesystem move
-	// Fall back to copy + delete
-	return copyAndDelete(src, dst)
-}
-
-// copyAndDelete copies a file then deletes the original.
-// Used when os.Rename fails (e.g., cross-filesystem moves).
-func copyAndDelete(src, dst string) error {
+// copyFile copies a file from src to dst.
+func copyFile(src, dst string) error {
 	// Open source file
 	srcFile, err := os.Open(src)
 	if err != nil {
@@ -136,16 +142,6 @@ func copyAndDelete(src, dst string) error {
 		return fmt.Errorf("failed to sync destination file: %w", err)
 	}
 
-	// Close files before deleting
-	srcFile.Close()
-	dstFile.Close()
-
-	// Delete the original
-	err = os.Remove(src)
-	if err != nil {
-		return fmt.Errorf("copied successfully but failed to delete original: %w", err)
-	}
-
 	return nil
 }
 
@@ -157,17 +153,17 @@ func ConfirmQuarantine(fileCount int, targetDir string) bool {
 	fmt.Println(common.ColorRed + common.ColorBold + "║                           ⚠️  WARNING ⚠️                                   ║" + common.ColorReset)
 	fmt.Println(common.ColorRed + common.ColorBold + "╚══════════════════════════════════════════════════════════════════════════╝" + common.ColorReset)
 	fmt.Println()
-	fmt.Println(common.ColorRed + common.ColorBold + "  This operation will MOVE files from their original location." + common.ColorReset)
-	fmt.Println(common.Red("  They will NO LONGER EXIST in the source directories."))
+	fmt.Println(common.ColorYellow + common.ColorBold + "  This operation will COPY files to a secure location." + common.ColorReset)
+	fmt.Println(common.Yellow("  You will be asked whether to delete each original file after copying."))
 	fmt.Println()
-	fmt.Printf("  📁 Files to move: %s%d%s\n", common.ColorBold, fileCount, common.ColorReset)
-	fmt.Printf("  📂 Target vault:  %s%s%s\n", common.ColorBold, targetDir, common.ColorReset)
+	fmt.Printf("  📁 Files to process: %s%d%s\n", common.ColorBold, fileCount, common.ColorReset)
+	fmt.Printf("  📂 Target vault:     %s%s%s\n", common.ColorBold, targetDir, common.ColorReset)
 	fmt.Println()
-	fmt.Println(common.Yellow("  This action cannot be easily undone!"))
+	fmt.Println(common.Cyan("  This is a 'Copy First, Ask Later' safety approach."))
 	fmt.Println()
 	fmt.Print("  Type 'yes' to confirm, or anything else to cancel: ")
 
-	reader := bufio.NewReader(os.Stdin)
+	reader := bufio.NewReader(inputReader)
 	input, err := reader.ReadString('\n')
 	if err != nil {
 		return false
@@ -189,7 +185,7 @@ func PrintQuarantineResults(results []MoveResult) {
 	for _, r := range results {
 		if r.Success {
 			successCount++
-			fmt.Printf("  %s Moved: %s\n", common.Green("✅"), shortenPath(r.OriginalPath))
+			fmt.Printf("  %s Quarantined: %s\n", common.Green("✅"), shortenPath(r.OriginalPath))
 			fmt.Printf("     → %s\n", shortenPath(r.NewPath))
 		} else {
 			failCount++
