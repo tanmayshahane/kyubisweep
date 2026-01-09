@@ -2,6 +2,7 @@
 package main
 
 import (
+	"runtime" // <-- added for printing OS/Arch
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -16,6 +17,18 @@ import (
 	"github.com/tanmayshahane/kyubisweep/pkg/reporter"
 	"github.com/tanmayshahane/kyubisweep/pkg/scanner"
 )
+
+// Version of KyubiSweep (set at build time using -ldflags)
+var Version = "dev"
+// init updates Version automatically for go run using environment variable
+func init() {
+	if Version == "dev" {
+		if v := os.Getenv("VERSION"); v != "" {
+			Version = v
+		}
+	}
+}
+
 
 const (
 	numWorkers = 10
@@ -44,7 +57,17 @@ func main() {
 	quiet := flag.Bool("quiet", false, "Minimal output, just summary stats")
 	moveTo := flag.String("move-to", "", "Quarantine: Move files with secrets to this directory")
 
+	// ---- VERSION FLAG ----
+	versionLong := flag.Bool("version", false, "Print version and exit")
+	versionShort := flag.Bool("v", false, "Print version and exit (shorthand)")
+	
 	flag.Parse()
+
+	// Check version flag first
+	if *versionLong || *versionShort {
+		fmt.Printf("KyubiSweep %s (%s/%s)\n", Version, runtime.GOOS, runtime.GOARCH)
+		os.Exit(0)
+	}
 
 	if *showHelp {
 		printHelp()
@@ -173,6 +196,10 @@ func printHelp() {
 	fmt.Println("  kyubisweep --path . --all")
 	fmt.Println("  kyubisweep --path . --move-to ./secure_vault")
 	fmt.Println("  kyubisweep --path . --json")
+
+	fmt.Println("  --version, -v           Print version and exit") // <-- new line
+
+
 	fmt.Println("")
 }
 
