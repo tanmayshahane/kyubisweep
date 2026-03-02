@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -16,6 +17,9 @@ import (
 	"github.com/tanmayshahane/kyubisweep/pkg/reporter"
 	"github.com/tanmayshahane/kyubisweep/pkg/scanner"
 )
+
+// Version can be overridden at build time with -ldflags
+var Version = "dev"
 
 const (
 	numWorkers = 10
@@ -36,6 +40,7 @@ func main() {
 	scanPath := flag.String("path", ".", "Path to the directory to scan for secrets")
 	verbose := flag.Bool("verbose", false, "Enable verbose output for debugging")
 	showHelp := flag.Bool("help", false, "Show help information")
+	showVersion := flag.Bool("version", false, "Print version information and exit")
 	allSeverity := flag.Bool("all", false, "Show all severity levels (default: HIGH only)")
 	allFiles := flag.Bool("all-files", false, "Scan all files, not just text-based files")
 	extraExt := flag.String("ext", "", "Additional file extensions to scan (comma-separated)")
@@ -48,6 +53,12 @@ func main() {
 
 	if *showHelp {
 		printHelp()
+		os.Exit(0)
+	}
+
+	if *showVersion {
+		fmt.Printf("KyubiSweep %s\n", Version)
+		fmt.Printf("  OS/Arch: %s/%s\n", runtime.GOOS, runtime.GOARCH)
 		os.Exit(0)
 	}
 
@@ -166,6 +177,7 @@ func printHelp() {
 	fmt.Println("  --no-report          Don't save report file")
 	fmt.Println("  --quiet              Minimal output, just summary")
 	fmt.Println("  --move-to <path>     Move files with secrets to quarantine directory")
+	fmt.Println("  --version            Print version information and exit")
 	fmt.Println("  --help               Show this help message")
 	fmt.Println("")
 	fmt.Println("EXAMPLES:")
@@ -173,6 +185,7 @@ func printHelp() {
 	fmt.Println("  kyubisweep --path . --all")
 	fmt.Println("  kyubisweep --path . --move-to ./secure_vault")
 	fmt.Println("  kyubisweep --path . --json")
+	fmt.Println("  kyubisweep --version")
 	fmt.Println("")
 }
 
