@@ -19,6 +19,7 @@ import (
 
 const (
 	numWorkers = 10
+	Version    = "0.1.0"
 
 	bannerArt = `
     ╔═══════════════════════════════════════════════════════════════╗
@@ -36,6 +37,7 @@ func main() {
 	scanPath := flag.String("path", ".", "Path to the directory to scan for secrets")
 	verbose := flag.Bool("verbose", false, "Enable verbose output for debugging")
 	showHelp := flag.Bool("help", false, "Show help information")
+	showVersion := flag.Bool("version", false, "Show version information")
 	allSeverity := flag.Bool("all", false, "Show all severity levels (default: HIGH only)")
 	allFiles := flag.Bool("all-files", false, "Scan all files, not just text-based files")
 	extraExt := flag.String("ext", "", "Additional file extensions to scan (comma-separated)")
@@ -48,6 +50,11 @@ func main() {
 
 	if *showHelp {
 		printHelp()
+		os.Exit(0)
+	}
+
+	if *showVersion {
+		fmt.Printf("KyubiSweep v%s\n", Version)
 		os.Exit(0)
 	}
 
@@ -167,6 +174,7 @@ func printHelp() {
 	fmt.Println("  --quiet              Minimal output, just summary")
 	fmt.Println("  --move-to <path>     Move files with secrets to quarantine directory")
 	fmt.Println("  --help               Show this help message")
+	fmt.Println("  --version            Show version information")
 	fmt.Println("")
 	fmt.Println("EXAMPLES:")
 	fmt.Println("  kyubisweep --path ./my-project")
